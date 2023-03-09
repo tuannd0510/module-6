@@ -24,61 +24,29 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-    private String fileName = "contacts.txt";
+
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+    String currentTime = sdf.format(new Date());
+    String fileName = "contacts"+currentTime+".txt";
+    // Define the file name and path
+    File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+    File file = new File(downloadsDirectory, fileName);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         getContact();
+//        uploadFirebase();
 
-        uploadFirebase();
-    }
-
-    private void uploadFirebase() {
-        // Define the file name and path
-        File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        File file = new File(downloadsDirectory, fileName);
-
-        // Create a FirebaseStorage object
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-
-        // Get a reference to the Firebase Storage location where the file will be uploaded
-        StorageReference storageRef = storage.getReference().child("contacts/" + fileName);
-
-        // Create a file input stream to read the file data
-        FileInputStream stream;
-        try {
-            stream = new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        // Upload the file to Firebase Storage
-        UploadTask uploadTask = storageRef.putStream(stream);
-        uploadTask.addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-            @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                // The file has been uploaded successfully
-                Toast.makeText(MainActivity.this, "File uploaded to Firebase Storage", Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-                // There was an error uploading the file
-                e.printStackTrace();
-                Toast.makeText(MainActivity.this, "Failed to upload file to Firebase Storage", Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void getContact() {
-        // Define the file name and path
-        File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        File file = new File(downloadsDirectory, fileName);
-
         // Get the content resolver
         ContentResolver resolver = getContentResolver();
 
@@ -128,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
 
     }
 
