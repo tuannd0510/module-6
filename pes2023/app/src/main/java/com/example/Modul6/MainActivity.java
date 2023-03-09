@@ -24,26 +24,32 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-    String currentTime = sdf.format(new Date());
-    String fileName = "contacts"+currentTime+".txt";
-    // Define the file name and path
-    File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-    File file = new File(downloadsDirectory, fileName);
+    File file;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        setFileName();
         getContact();
-//        uploadFirebase();
+        uploadFirebase();
 
+    }
+
+    private void setFileName() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        String currentTime = sdf.format(new Date());
+        String fileName = "contacts"+currentTime+".txt";
+        // Define the file name and path
+        File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        file = new File(downloadsDirectory, fileName);
     }
 
     private void getContact() {
@@ -84,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
                 String phone = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
 
                 // Do something with the contact name and phone number
-                Log.d("Contact", "Name: " + name + ", Phone: " + phone);
+                Log.d("getContact", "Name: " + name + ", Phone: " + phone);
                 // Write the contact name and phone number to the file
                 writer.write(name + ", " + phone + "\n");
             }
@@ -100,5 +106,26 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void uploadFirebase() {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        // Create a storage reference from our app
+        StorageReference storageRef = storage.getReference();
+        // Create a reference to the file you want to upload
+        StorageReference fileRef = storageRef.child(file.getName());
 
+        String filePath = file.getPath();
+        Uri fileUri = Uri.fromFile(new File(filePath));
+
+
+        // Upload file to Firebase Storage
+        fileRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    // File uploaded successfully
+                    Log.d("uploadFirebase", "File uploaded successfully");
+                })
+                .addOnFailureListener(e -> {
+                    // Handle unsuccessful uploads
+                    Log.e("uploadFirebase", "Error uploading file", e);
+                });
+    }
 }
