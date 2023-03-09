@@ -3,6 +3,7 @@ package com.example.Modul6;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
@@ -11,6 +12,8 @@ import android.provider.ContactsContract;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -24,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -34,15 +38,39 @@ public class MainActivity extends AppCompatActivity {
     String fileName = "contacts"+currentTime+".txt";
     // Define the file name and path
     File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-    File file = new File(downloadsDirectory, fileName);
+    File file = new File( downloadsDirectory,fileName);
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         getContact();
-//        uploadFirebase();
+        uploadFirebase();
+    }
+
+    private void uploadFirebase() {
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("Contact");
+        InputStream stream = null;
+        String data = "This is my data";
+        //Uri uri = Uri.fromFile(file);
+        storageRef.child("contact.txt").putBytes(data.getBytes())
+                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                        // File successfully uploaded
+                        Toast.makeText(MainActivity.this, "Successfully", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        // Handle errors
+                        Toast.makeText(MainActivity.this, "Failure", Toast.LENGTH_SHORT).show();
+
+                    }
+                });
 
     }
 
