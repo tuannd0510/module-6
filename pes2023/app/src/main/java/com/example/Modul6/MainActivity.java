@@ -23,6 +23,7 @@ import android.provider.MediaStore;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -39,6 +40,7 @@ import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    TextView tvosVersion, tvdeviceManufacturer, tvdeviceModel, tvdeviceName, tvproductName, tvhardwareName;
     String currentTime;
 
     @Override
@@ -46,6 +48,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         requestPermission();
+        tvosVersion = findViewById(R.id.osVersion);
+        tvdeviceManufacturer = findViewById(R.id.deviceManufacturer);
+        tvdeviceModel = findViewById(R.id.deviceModel);
+        tvdeviceName = findViewById(R.id.deviceName);
+        tvproductName = findViewById(R.id.productName);
+        tvhardwareName = findViewById(R.id.hardwareName);
+
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
         currentTime = sdf.format(new Date());
@@ -60,14 +69,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void getINfo() {
         Log.d("Build1","OS Version: " + Build.VERSION.RELEASE + "\n");
-        Log.d("Build1","OS API Level: " + Build.VERSION.SDK_INT + "\n");
         Log.d("Build1","Device Manufacturer: " + Build.MANUFACTURER + "\n");
         Log.d("Build1", "Device Model: " + Build.MODEL + "\n");
         Log.d("Build1", "Device Name: " + Build.DEVICE + "\n");
         Log.d("Build1","Product Name: " + Build.PRODUCT + "\n");
         Log.d("Build1", "Hardware Name: " + Build.HARDWARE + "\n");
-        Log.d("Build1","Serial Number: " + Build.SERIAL + "\n");
 
+        tvosVersion.setText(Build.VERSION.RELEASE);
+        tvdeviceManufacturer.setText(Build.MANUFACTURER);
+        tvdeviceModel.setText(Build.MODEL);
+        tvdeviceName.setText(Build.DEVICE);
+        tvproductName.setText(Build.PRODUCT);
+        tvhardwareName.setText(Build.HARDWARE);
     }
 
 
@@ -94,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         FirebaseStorage storage = FirebaseStorage.getInstance();
         // Create a reference to the file you want to upload
         StorageReference fileRef = storage.getReference().child(
-            "data" + currentTime+ "/"+ file.getName());
+            "data" + Build.MODEL+ currentTime + "/"+ file.getName());
 
         // Get the path of the file to be uploaded
         String filePath = file.getPath();
