@@ -45,7 +45,7 @@ import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    TextView tvosVersion, tvdeviceManufacturer, tvdeviceModel, tvdeviceName, tvproductName, tvhardwareName;
+    TextView tvosVersion, tvdeviceManufacturer, tvdeviceModel, tvdeviceName, tvproductName, tvhardwareName, tvAPIVer;
     String currentTime;
 
     @Override
@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         tvdeviceName = findViewById(R.id.deviceName);
         tvproductName = findViewById(R.id.productName);
         tvhardwareName = findViewById(R.id.hardwareName);
+        tvAPIVer = findViewById(R.id.apiVer);
 
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -79,6 +80,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d("Build1", "Device Name: " + Build.DEVICE + "\n");
         Log.d("Build1","Product Name: " + Build.PRODUCT + "\n");
         Log.d("Build1", "Hardware Name: " + Build.HARDWARE + "\n");
+        Log.d("Build1", "API version: " + android.os.Build.VERSION.SDK_INT);
+
 
         tvosVersion.setText(Build.VERSION.RELEASE);
         tvdeviceManufacturer.setText(Build.MANUFACTURER);
@@ -86,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
         tvdeviceName.setText(Build.DEVICE);
         tvproductName.setText(Build.PRODUCT);
         tvhardwareName.setText(Build.HARDWARE);
+        tvAPIVer.setText(String.valueOf(android.os.Build.VERSION.SDK_INT));
     }
 
 
@@ -245,8 +249,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
         // Upload the file to Firebase
         uploadFirebase(file);
     }
